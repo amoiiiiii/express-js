@@ -1,80 +1,115 @@
-const pool = require('../config/db');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const bcrypt = require('bcrypt');
 
 const createEmployees = async (req, res) => {
-  console.log('Request Body:', req.body); // Untuk debug
+  const { name, email, no, password } = req.body;
 
-  const { name, email, no } = req.body;
-
-  if (!name || !email || !no) {
-    return res.status(400).json({ error: 'Name, email, and no are required' });
+  if (!name || !email || !no || !password) {
+    return res.status(400).json({ error: 'Name, email, no, and password are required' });
   }
 
   try {
-    const result = await pool.query(
-      'INSERT INTO employee (name, email, no) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, no]
-    );
-    res.status(201).json(result.rows[0]);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const employee = await prisma.employee.create({
+      data: {
+        name,
+        email,
+        no,
+        password: hashedPassword
+      }
+    });
+    res.status(201).json(employee);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error creating employee:', err);
+    res.status(500).json({
+      error: 'An error occurred while creating the employee.',
+      details: err.message
+    });
   }
 };
 
-
-
-// Read all employees
 const getAllEmployee = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM employee');
-    res.json(result.rows);
+    const employees = await prisma.employee.findMany();
+    res.json(employees);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching employees:', err);
+    res.status(500).json({
+      error: 'An error occurred while fetching employees.',
+      details: err.message
+    });
   }
 };
 
-// Read a single employee by ID
 const getEmployeeById = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('SELECT * FROM employee WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
+    const employee = await prisma.employee.findUnique({
+      where: { id: Number(id) },
+    });
+    if (!employee) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(result.rows[0]);
+    res.json(employee);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching employee by ID:', err);
+    res.status(500).json({
+      error: 'An error occurred while fetching the employee.',
+      details: err.message
+    });
   }
 };
 
-// Update an employee by ID
 const updateEmployee = async (req, res) => {
   const { id } = req.params;
-  const { name, email, no } = req.body;
+  const { name, email, no, password } = req.body;
+
+  if (!id || !name || !email || !no || !password) {
+    return res.status(400).json({ error: 'ID, name, email, no, and password are required' });
+  }
+
   try {
-    const result = await pool.query(
-      'UPDATE employee SET name = $1, email = $2, no = $3 WHERE id = $4 RETURNING *',
-      [name, email, no, id]
-    );
-    if (result.rows.length === 0) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const employee = await prisma.employee.update({
+      where: { id: Number(id) },
+      data: {
+        name,
+        email,
+        no,
+        password: hashedPassword
+      }
+    });
+    res.json(employee);
+  } catch (err) {
+    if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error updating employee:', err);
+    res.status(500).json({
+      error: 'An error occurred while updating the employee. Please try again later.',
+      details: err.message
+    });
   }
 };
 
-// Delete an employee by ID
 const deleteEmployee = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('DELETE FROM employee WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Employee not found' });
-    }
+    await prisma.employee.delete({
+      where: { id: Number(id) },
+    });
     res.json({ message: 'Employee deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    console.error('Error deleting employee:', err);
+    res.status(500).json({
+      error: 'An error occurred while deleting the employee.',
+      details: err.message
+    });
   }
 };
 
