@@ -3,32 +3,40 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcrypt');
 
 const createEmployees = async (req, res) => {
-  const { name, email, no, password } = req.body;
-
-  if (!name || !email || !no || !password) {
-    return res.status(400).json({ error: 'Name, email, no, and password are required' });
-  }
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const employee = await prisma.employee.create({
-      data: {
-        name,
-        email,
-        no,
-        password: hashedPassword
-      }
-    });
-    res.status(201).json(employee);
-  } catch (err) {
-    console.error('Error creating employee:', err);
-    res.status(500).json({
-      error: 'An error occurred while creating the employee.',
-      details: err.message
-    });
-  }
-};
-
+    const { name, email, no, password, departmentId } = req.body;
+  
+    if (!name || !email || !no || !password) {
+      return res.status(400).json({ error: 'Name, email, no, and password are required' });
+    }
+  
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const employee = await prisma.employee.create({
+        data: {
+          name,
+          email,
+          no,
+          password: hashedPassword,
+          department: departmentId ? {
+            connect: {
+              id: Number(departmentId)  // Convert departmentId to number
+            }
+          } : undefined
+        },
+        include: {
+          department: true
+        }
+      });
+      res.status(201).json(employee);
+    } catch (err) {
+      console.error('Error creating employee:', err);
+      res.status(500).json({
+        error: 'An error occurred while creating the employee.',
+        details: err.message
+      });
+    }
+  };
+  
 const getAllEmployee = async (req, res) => {
   try {
     const employees = await prisma.employee.findMany();
