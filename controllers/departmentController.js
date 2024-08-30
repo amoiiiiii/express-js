@@ -2,16 +2,16 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const createDepartment = async (req, res) => {
-  const { name } = req.body;
+  const { divisi } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ error: 'Name is required' });
+  if (!divisi) {
+    return res.status(400).json({ error: 'divisi is required' });
   }
 
   try {
     const department = await prisma.department.create({
       data: {
-        name,
+        divisi,
       },
     });
     res.status(201).json(department);
@@ -58,16 +58,16 @@ const getDepartmentById = async (req, res) => {
 
 const updateDepartment = async (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
+  const { divisi } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ error: 'Name is required' });
+  if (!divisi) {
+    return res.status(400).json({ error: 'divisi is required' });
   }
 
   try {
     const department = await prisma.department.update({
       where: { id: Number(id) },
-      data: { name },
+      data: { divisi },
     });
     res.json(department);
   } catch (err) {
