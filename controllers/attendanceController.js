@@ -6,7 +6,7 @@ const checkIn = async (req, res) => {
   const now = new Date();
 
   try {
-    // Periksa apakah sudah ada catatan check-in untuk hari ini
+    //Check if there is already a check-in record for today.
     const existingCheckIn = await prisma.attendance.findFirst({
       where: {
         employeeId: userId,
@@ -21,14 +21,14 @@ const checkIn = async (req, res) => {
       return res.status(400).json({ error: 'You have already checked in today.' });
     }
 
-    // Buat catatan check-in baru
+    // Create a new check-in record.
     const attendance = await prisma.attendance.create({
       data: {
         employeeId: userId,
         checkIn: now,
       },
       include: {
-        employee: true  // Sertakan informasi karyawan
+        employee: true  // Include employee information
       }
     });
 
@@ -51,7 +51,7 @@ const checkOut = async (req, res) => {
   const now = new Date();
 
   try {
-    // Cari catatan check-in untuk hari ini
+    // Search for today's check-in record
     const attendance = await prisma.attendance.findFirst({
       where: {
         employeeId: userId,
@@ -64,7 +64,7 @@ const checkOut = async (req, res) => {
         }
       },
       include: {
-        employee: true  // Sertakan informasi karyawan
+        employee: true  // Include employee information
       }
     });
 
@@ -72,14 +72,14 @@ const checkOut = async (req, res) => {
       return res.status(400).json({ error: 'You have not checked in yet.' });
     }
 
-    // Perbarui catatan check-out
+    // Update the check-out record.
     const updatedAttendance = await prisma.attendance.update({
       where: { id: attendance.id },
       data: {
         checkOut: now,
       },
       include: {
-        employee: true  // Sertakan informasi karyawan
+        employee: true  // Include employee information
       }
     });
 
